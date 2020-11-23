@@ -82,7 +82,6 @@ def snake_case_breakdown(identifier):
 
 def camel_case_breakdown(identifier):
     idx = list(map(str.isupper, identifier))
-    # mark change of case
     l = [0]
     for (i, (x, y)) in enumerate(zip(idx, idx[1:])):
         if x and not y:  # "Ul"
@@ -90,5 +89,4 @@ def camel_case_breakdown(identifier):
         elif not x and y:  # "lU"
             l.append(i+1)
     l.append(len(identifier))
-    # for "lUl", index of "U" will pop twice, have to filer it
     return [identifier[x:y] for x, y in zip(l, l[1:]) if x < y]

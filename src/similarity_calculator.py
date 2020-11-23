@@ -3,19 +3,16 @@ import math
 import numpy as np
 
 def frequency_to_vector(keywords, frequency_for_source, frequencies_for_sources_and_report):
-    # print(f"keywords : {keywords}")
     vector = np.zeros(len(keywords))
     for i in range(len(keywords)):
         vector[i] = tfidf(i, frequency_for_source, frequencies_for_sources_and_report)
-    # print(vector)
     return vector
 
 def tfidf(term_index, frequency_for_source, frequencies_for_sources_and_report):
-    # print(term_index, frequency_for_source, frequencies_for_sources_and_report)
     return tf(term_index, frequency_for_source) * idf(term_index, frequencies_for_sources_and_report)
 
 def tf(term_index, frequency_for_source):
-    return frequency_for_source[term_index]
+    return math.log(frequency_for_source[term_index])
 
 def idf(term_index, frequencies_for_sources_and_report):
     return math.log(len(frequencies_for_sources_and_report) / len([frequency_for_source for frequency_for_source in frequencies_for_sources_and_report if frequency_for_source[term_index] > 0]))
