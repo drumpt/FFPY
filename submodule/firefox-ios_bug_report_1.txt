@@ -1,0 +1,19 @@
+User Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:28.0) Gecko/20100101 Firefox/28.0 (Beta/Release)
+Build ID: 20140410211200
+
+Steps to reproduce:
+
+1. create a folder in the bookmarks-toolbar and fill it with some bookmarks (one is enough)
+2. opening the folder per mouse-leftclick works flawlessly but per touch-click it just opens for a fraction of a second and is immediately collapsed again
+ 
+(Tested with installed ubuntu 14.04 and untouched live version on t440s with touchscreen)
+
+
+Actual results:
+
+Bookmarks-folders is immediateky closed again if opened per touchscreen
+
+
+Expected results:
+
+It should just open the folder and show the contents

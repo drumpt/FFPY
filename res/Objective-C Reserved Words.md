@@ -1,0 +1,108 @@
+# Objective-C Reserved Words
+
+Objective-C reserves certain words, so that you can’t, or shouldn’t, use them in your own code.
+
+- A
+  - auto
+- B
+  - break
+- C  
+  - case 
+  - char
+  - const
+  - continue
+- D
+  - default
+  - do
+  - double
+- E
+  - else
+  - enum
+  - extern
+- F
+  - float 
+  - for 
+- G
+  - goto
+- I
+  - if
+  - inline
+  - int 
+- L
+  - long
+- R
+  - register
+  - restrict
+  - return
+- S
+  - short
+  - signed
+  - sizeof
+  - static
+  - struct
+  - switch
+- T
+  - typedef
+- U
+  - union
+  - unsigned
+- V
+  - void
+  - volatile
+- W
+  - while
+
+- _Bool
+- _Complex
+- _Imaginary
+
+Word's you should not use.
+
+- B
+  - BOOL
+  - Class
+- B 
+  - bycopy
+  - byref
+- I 
+  - id
+  - IMP
+  - in
+  - inout
+- N 
+  - nil
+  - NO
+  - NULL
+- O
+  - oneway
+  - out
+- P 
+  - Protocol
+- S 
+  - SEL
+  - self
+  - Super
+- Y
+  - YES
+- @
+  - @interface
+  - @end
+  - @implementation
+  - @protocol
+  - @class
+  - @public
+  - @protected
+  - @private
+  - @property
+  - @try
+  - @throw
+  - @catch()
+  - @finally
+  - @synthesize
+  - @dynamic
+  - @selector
+  - atomic
+  - nonatomic
+  - retain
+  
+ ---

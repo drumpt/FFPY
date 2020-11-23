@@ -1,0 +1,229 @@
+Teradata Parallel Transporter (PT) reserved keywords cannot be used in Teradata PT job scripts as identifiers. Identifiers are non-quoted strings used for column names, script object names, or attributes.
+
+The following notation appears in the list of Teradata PT reserved keywords.
+
+- A
+  - ACCOUNTTR   
+  - ALLTR   
+  - ALLOW   
+  - ANDTR   
+  - ANSIDATETR   
+  - APPLY   
+  - ARRAY
+  - ATTRIBUTES   
+  - ASTR   
+  - ATTR
+- B
+  - BIGINTTR   
+  - BLOBTR   
+  - BYTR   
+  - BYTETR   
+  - BYTEINTTR
+- C 
+  - CASETR   
+  - CASTTR   
+  - CATEGORY   
+  - CHARTR   
+  - CHARACTERTR   
+  - CHARACTERSTR
+  - CHARSTR   
+  - CHECKTR   
+  - CHECKPOINTTR   
+  - CLOBTR   
+  - COMMAND   
+  - COMPONENT
+  - CONSUMER
+- D 
+  - DATABASETR   
+  - DATACONNECTOR   
+  - DATAGENERATOR   
+  - DATETR   
+  - DATETIME
+  - DAYTR   
+  - DBMS   
+  - DDL   
+  - DEBUG   
+  - DECTR   
+  - DECIMALTR   
+  - DEFAULTTR
+  - DEFERREDTR   
+  - DEFINE   
+  - DELETETR   
+  - DELIM   
+  - DELIMITER   
+  - DELTATIME
+  - DESCRIPTION   
+  - DIRECTORY   
+  - DISABLE   
+  - DISALLOW   
+  - DISCARD   
+  - DUPLICATE
+- E
+  - ELSETR   
+  - ENABLE   
+  - ENDTR   
+  - EXECUTETR   
+  - EXPORT   
+  - EXTERNALTR   
+  - EXTRA
+- F
+  - FALSE   
+  - FASTEXPORTTR   
+  - FASTLOAD   
+  - FILE   
+  - FILTER   
+  - FLOATTR   
+  - FORTR
+  - FROMTR
+- G 
+  - GENERIC   
+  - GRAPHICTR
+  -  
+  - HOURTR
+- I 
+  - ID   
+  - IFTR   
+  - IGNORE   
+  - INCLUDE   
+  - INFO   
+  - INMOD   
+  - INPUTTR   
+  - INSERT
+  - INSERTER   
+  - INSTANCE   
+  - INTTR   
+  - INTDATE   
+  - INTEGERTR   
+  - INTERFACE
+  - INTERVALTR   
+  - INTOTR   
+  - ISTR 
+- J
+  - JOB
+- K 
+  - KEEP
+- L 
+  - LANGUAGETR   
+  - LATENCY   
+  - LENGTH   
+  - LIBRARY   
+  - LOAD   
+  - LOCALTR   
+  - LONGTR
+  - LOGTR   
+  - LOGGER   
+  - LOGONTR   
+  - LOGREP   
+  - LANGORT
+- M 
+  - MACROCHARSET*   
+  - MARK   
+  - MAXTR   
+  - MAXIMUMTR   
+  - MESSAGE   
+  - METADATA   
+  - MINTR
+  - MINUTETR   
+  - MINUTES   
+  - MISSING   
+  - MODETR   
+  - MONTHTR
+  - MSGCATALOG   
+  - MSGNUMBER   
+  - MSGTEXT   
+  - MULTILOAD   
+  - MULTIPHASE
+  - MSGTEXT   
+  - MULTILOAD   
+  - MULTIPHASE
+- N
+  - NAME   
+  - NODE   
+  - NODEBUG   
+  - NODENAME   
+  - NOINFO   
+  - NOTTR   
+  - NOTRACE
+  - NULLTR   
+  - NULLIFTR   
+  - NUMERICTR
+- O 
+  - ODBC   
+  - OFFTR   
+  - OFFSET   
+  - ONTR   
+  - OPERATOR   
+  - ORTR   
+  - OS   
+  - OTHER
+  - OUTMOD   
+  - OUTPUT
+- P 
+  - PARALLEL   
+  - PASSWORDTR   
+  - PATH   
+  - PERIOD   
+  - PROCESSID   
+  - PRODUCER
+  - PXOPER
+- R 
+  - REMOTE   
+  - RESTARTABLE   
+  - ROWSTR
+- S
+  - SCHEMA   
+  - SEC   
+  - SECONDTR   
+  - SECONDS   
+  - SELECTTR   
+  - SELECTOR
+  - SEQUENTIAL   
+  - SERIALIZE   
+  - SETTR   
+  - SMALLINTTR   
+  - SOURCE   
+  - STANDALONE
+  - STEP   
+  - STREAM   
+  - SUPPORT   
+  - SYSTEM
+- T 
+  - TABLETR   
+  - TASKID   
+  - TASKNAME   
+  - TERADATA   
+  - THENTR   
+  - TIMETR  
+  - TIMESTAMPTR   
+  - TOTR   
+  - TRACETR   
+  - TRUE   
+  - TYPETR  
+- U 
+  - UNIONTR   
+  - UNKNOWN   
+  - UPDATETR   
+  - USE   
+  - USERTR   
+  - USINGTR  
+- V 
+  - VARBYTETR   
+  - VARCHARTR   
+  - VARGRAPHICTR   
+  - VARYINGTR   
+  - VERSION   
+  - VIA  
+  - VIEWTR  
+- W
+  - WHENTR   
+  - WHERETR   
+  - WITHTR   
+  - WORKING 
+- X 
+  - XSMOD 
+- Y
+  - YEARTR 
+- Z
+  - ZONETR  
+  
+---

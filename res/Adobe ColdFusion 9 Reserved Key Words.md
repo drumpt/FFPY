@@ -1,0 +1,289 @@
+# Adobe ColdFusion 9 Reserved Key Words
+
+The following list indicates words you must not use for ColdFusion variables, user-defined function names, or custom tag names. Although you can safely use some of these words in some situations, you can prevent errors by avoiding them entirely.
+
+- Any name starting with cf. However, when you call a CFML custom tag directly, you prefix the custom tag page name with cf_.
+- Built-in function names, such as Now or Hash
+- Scope names, such as Form or Session
+- Operators, such as NE or IS
+- The names of any built-in data structures, such as Error or File
+- The names of any built-in variables, such as RecordCount or CGI variable names
+- The following CFScript language element names:
+  - for
+  - default
+  - continue
+  - import
+  - finally
+  - local (inside function declaration)
+  - interface
+  - pageencoding
+
+Remember that ColdFusion is not case sensitive. For example, all of the following are reserved words: IS, Is, iS, and is.
+Note: Keywords in the newly added statements, such as abort, rethrow, param, and so on are not reserved.
+
+
+Reserved words in forms
+
+- _integer
+- _float
+- _range
+- _date
+- _time
+- _eurodate
+
+Reserved words in queries
+
+- A 
+  - ABSOLUTE
+  - ACTION
+  - ADD
+  - ALL
+  - ALLOCATE
+  - ALTER
+  - AND
+  - ANY
+  - ARE
+  - AS
+  - ASC
+  - ASSERTION
+  - AT
+  - AUTHORIZATION
+  - AVG
+- B 
+  - BEGIN
+  - BETWEEN
+  - BIT
+  - BIT_LENGTH
+  - BOTH
+  - BY
+- C 
+  - CASCADE
+  - CASCADED
+  - CASE
+  - CAST
+  - CATALOG
+  - CHAR
+  - CHARACTER
+  - CHARACTER_LENGTH
+  - CHAR_LENGTH
+  - CHECK
+  - CLOSE
+  - COALESCE
+  - COLLATE
+  - COLLATION
+  - COLUMN
+  - COMMIT
+  - CONNECT
+  - CONNECTION
+  - CONSTRAINT
+  - CONSTRAINTS
+  - CONTINUE
+  - CONVERT
+  - CORRESPONDING
+  - COUNT
+  - CREATE
+  - CROSS
+  - CURRENT
+  - CURRENT_DATE
+  - CURRENT_TIME
+  - CURRENT_TIMESTAMP
+  - CURRENT_USER
+  - CURSOR
+- D 
+  - DATE
+  - DAY
+  - DEALLOCATE
+  - DEC
+  - DECIMAL
+  - DECLARE
+  - DEFAULT
+  - DEFERRABLE
+  - DEFERRED
+  - DELETE
+  - DESC
+  - DESCRIBE
+  - DESCRIPTOR
+  - DIAGNOSTICS
+  - DISCONNECT
+  - DISTINCT
+  - DOMAIN
+  - DOUBLE
+  - DROP
+- E 
+  - ELSE
+  - END
+  - END-EXEC
+  - ESCAPE
+  - EXCEPT
+  - EXCEPTION
+  - EXEC
+  - EXECUTE
+  - EXISTS
+  - EXTERNAL
+  - EXTRACT
+- F 
+  - FALSE
+  - FETCH
+  - FIRST
+  - FLOAT
+  - FOR
+  - FOREIGN
+  - FOUND
+  - FROM
+  - FULL
+- G 
+  - GET
+  - GLOBAL
+  - GO
+  - GOTO
+  - GRANT
+  - GROUP
+- H 
+  - HAVING
+  - HOUR
+- I 
+  - IDENTITY
+  - IMMEDIATE
+  - IN
+  - INDICATOR
+  - INITIALLY
+  - INNER
+  - INPUT
+  - INSENSITIVE
+  - INSERT
+  - INT
+  - INTEGER
+  - INTERSECT
+  - INTERVAL
+  - INTO
+  - IS
+  - ISOLATION
+- J 
+  - JOIN
+- K 
+  - KEY
+- L 
+  - LANGUAGE
+  - LAST
+  - LEADING
+  - LEFT
+  - LEVEL
+  - LIKE
+  - LOCAL
+  - LOWER
+- M 
+  - MATCH
+  - MAX
+  - MIN
+  - MINUTE
+  - MODULE
+  - MONTH
+- N 
+  - NAMES
+  - NATIONAL
+  - NATURAL
+  - NCHAR
+  - NEXT
+  - NO
+  - NOT
+  - NULL
+  - NULLIF
+  - NUMERIC
+- O 
+  - OCTET_LENGTH
+  - OF
+  - ON
+  - ONLY
+  - OPEN
+  - OPTION
+  - OR
+  - ORDER
+  - OUTER
+  - OUTPUT
+  - OVERLAPS
+- P 
+  - PAD
+  - PARTIAL
+  - POSITION
+  - PRECISION
+  - PREPARE
+  - PRESERVE
+  - PRIMARY
+  - PRIOR
+  - PRIVILEGES
+  - PROCEDURE
+  - PUBLIC
+- R 
+  - READ
+  - REAL
+  - REFERENCES
+  - RELATIVE
+  - RESTRICT
+  - REVOKE
+  - RIGHT
+  - ROLLBACK
+  - ROWS
+- S 
+  - SCHEMA
+  - SCROLL
+  - SECOND
+  - SECTION
+  - SELECT
+  - SESSION
+  - SESSION_USER
+  - SET
+  - SIZE
+  - SMALLINT
+  - SOME
+  - SPACE
+  - SQL
+  - SQLCODE
+  - SQLERROR
+  - SQLSTATE
+  - SUBSTRING
+  - SUM
+  - SYSTEM_USER
+- T 
+  - TABLE
+  - TEMPORARY
+  - THEN
+  - TIME
+  - TIMESTAMP
+  - TIMEZONE_HOUR
+  - TIMEZONE_MINUTE
+  - TO
+  - TRAILING
+  - TRANSACTION
+  - TRANSLATE
+  - TRANSLATION
+  - TRIM
+  - TRUE
+- U 
+  - UNION
+  - UNIQUE
+  - UNKNOWN
+  - UPDATE
+  - UPPER
+  - USAGE
+  - USER
+  - USING
+- V 
+  - VALUE
+  - VALUES
+  - VARCHAR
+  - VARYING
+  - VIEW
+- W 
+  - WHEN
+  - WHENEVER
+  - WHERE
+  - WITH
+  - WORK
+  - WRITE
+- Y 
+  - YEAR
+- Z 
+  - ZONE
+
+---
+ 
