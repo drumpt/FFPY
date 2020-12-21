@@ -7,18 +7,17 @@ from xml.etree.ElementTree import parse
 
 import constants as c
 
-class Bug():
-    def __init__(self, bug_id = None, report_frequency_dict = dict(), source_frequency_dict_dict = dict()):
+class Bug(): # Define each bug information in xml report as class instance
+    def __init__(self, bug_id = None, report_frequency_dict = dict(), related_sources = []):
         self.bug_id = bug_id # distinct bug id
         self.report_frequency_dict = report_frequency_dict # {word : word_count}
-        self.source_frequency_dict_dict = source_frequency_dict_dict # {{source_dir_1 : {word : word_count}}, {source_dir_2 : {word : word_count}}
-    
+        self.related_sources = []
+
     def __str__(self):
         bug_string = "\n\n"
         bug_string += f"bug id : {self.bug_id}\n"
         bug_string += f"report frequency dict : {self.report_frequency_dict}\n"
-        for k, v in self.source_frequency_dict_dict.items():
-            bug_string += f"{k} : {v}\n\n"
+        bug_string += f"related sources : {self.related_sources}\n\n"
         return bug_string
 
     def set_id(self, bug_id):
@@ -27,12 +26,11 @@ class Bug():
     def set_report_frequency_dict(self, report_frequency_dict):
         self.report_frequency_dict = report_frequency_dict
     
-    def add_source_frequency_dict(self, source_dir, source_frequency_dict):
-        if source_frequency_dict != dict():
-            self.source_frequency_dict_dict[source_dir] = source_frequency_dict
+    def add_related_source(self, source_dir):
+        self.related_sources.append(source_dir)
 
 class Preprocessor():
-    def __init__(self, project_dir, report_dir):
+    def __init__(self, project_dir, report_dir): # consider two cases: 1) report is xml file 2) report is not xml file
         self.project_dir = project_dir
         self.report_dir = report_dir
         self.is_xml_report = report_dir.split(".")[-1].lower() == "xml"
@@ -41,9 +39,21 @@ class Preprocessor():
             if self.source_to_frequency_dict(source_dir) != dict():
                 self.project_frequency_dict[source_dir] = self.source_to_frequency_dict(source_dir)
         if self.is_xml_report:
-            self.report_frequency_dict = self.parse_xml_report(report_dir)
+            self.xml_report = self.parse_xml_report(report_dir)
+            self.report_frequency_dict = None
         else:
+            self.xml_report = None
             self.report_frequency_dict = {report_dir : self.report_to_frequency_dict(report_dir)}
+
+    def get_sources_from_project_dir(self, project_dir):
+        sources = []
+        for root, _, files in os.walk(project_dir):
+            for file in files:
+                try:
+                    sources.append(os.path.join(root, file))
+                except Exception as e:
+                    pass
+        return sources
 
     def get_real_file_dir(self, project_dir, file_dir):
         if os.path.relpath(project_dir) == os.path.relpath("../data/ZXing"):
@@ -56,18 +66,10 @@ class Preprocessor():
             file_dir = file_dir
         else: # Eclipse, AspectJ, ...
             file_dir = file_dir
-        print(os.path.join(project_dir, file_dir))
+        # print(os.path.join(project_dir, file_dir))
         return os.path.join(project_dir, file_dir)
 
-    def get_sources_from_project_dir(self, project_dir):
-        sources = []
-        for root, _, files in os.walk(project_dir):
-            for file in files:
-                try:
-                    sources.append(os.path.join(root, file))
-                except Exception as e:
-                    pass
-        return sources
+    ### Parse xml report which includes the information about each bug(bug id, detailed content and fixed files) ###
 
     def parse_xml_report(self, report_dir):
         report_info = []
@@ -77,36 +79,47 @@ class Preprocessor():
                 bug_instance.set_report_frequency_dict(self.report_to_frequency_dict(bug.find("bugreport").text, is_string = True))
                 try:
                     for file in bug.find("fixedfiles").findall("file"):
-                        if len(os.path.splitext(file.attrib["name"])) == 2:
+                        if len(os.path.splitext(file.attrib["name"])) == 2: # in case where there are dotted directories
                             file.text = os.path.splitext(file.attrib["name"])[0].replace(".", "/") + os.path.splitext(file.attrib["name"])[1]
                         source_dir = self.get_real_file_dir(self.project_dir, file.attrib["name"])
-                        bug_instance.add_source_frequency_dict(source_dir, self.source_to_frequency_dict(source_dir))
+                        if os.path.exists(source_dir):
+                            bug_instance.add_related_source(source_dir)
                 except Exception as e:
                     print(e)
                     # pass
                 try:
                     for file in bug.find("fixedFiles").findall("file"):
-                        if len(os.path.splitext(file.attrib["name"])) == 2:
+                        if len(os.path.splitext(file.attrib["name"])) == 2: # in case where there are dotted directories
                             file.text = os.path.splitext(file.attrib["name"])[0].replace(".", "/") + os.path.splitext(file.attrib["name"])[1]
                         source_dir = self.get_real_file_dir(self.project_dir, file.attrib["name"])
-                        bug_instance.add_source_frequency_dict(source_dir, self.source_to_frequency_dict(source_dir))
+                        if os.path.exists(source_dir):
+                            bug_instance.add_related_source(source_dir)
                 except Exception as e:
-                    pass
-            except Exception as e:
-                pass
-            try: # second xml case
-                bug_instance.set_report_frequency_dict(self.report_to_frequency_dict(bug.find("buginformation").find("description").text, is_string = True))
-                for file in bug.find("fixedFiles").findall("file"):
-                    if len(os.path.splitext(file.text)) == 2:
-                        file.text = os.path.splitext(file.text)[0].replace(".", "/") + os.path.splitext(file.text)[1]
-                    source_dir = self.get_real_file_dir(self.project_dir, file.text)
-                    bug_instance.add_source_frequency_dict(source_dir, self.source_to_frequency_dict(source_dir))
+                    print(e)
+                    # pass
             except Exception as e:
                 print(e)
                 # pass
+            try: # second xml case
+                bug_instance.set_report_frequency_dict(self.report_to_frequency_dict(bug.find("buginformation").find("description").text, is_string = True))
+                try:
+                    for file in bug.find("fixedFiles").findall("file"):
+                        if len(os.path.splitext(file.text)) == 2: # in case where there are dotted directories
+                            file.text = os.path.splitext(file.text)[0].replace(".", "/") + os.path.splitext(file.text)[1]
+                        source_dir = self.get_real_file_dir(self.project_dir, file.text)
+                        if os.path.exists(source_dir):
+                            bug_instance.add_related_source(source_dir)
+                except Exception as e:
+                    print(e)
+                    # pass
+            except Exception as e:
+                print(e)
+                pass
             report_info.append(bug_instance)
             print(bug_instance)
         return report_info
+
+    ### Natural language processing for source code files and bug reports ###
 
     def source_to_frequency_dict(self, source):
         try:
@@ -142,6 +155,8 @@ class Preprocessor():
         keywords = sorted(set(words))
         frequency_dict = {word : words.count(word) for word in keywords}
         return frequency_dict
+
+    ### Functions needed to make source codes and bug reports as word frequency dictionaries ###
 
     def tokenization(self, file):
         return nltk.tokenize.word_tokenize(file)

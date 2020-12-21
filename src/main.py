@@ -16,7 +16,7 @@ def main():
     num_files_to_print = args.num_files_to_print
 
     project_report_info = preprocessor.Preprocessor(project_dir, report_dir)
-    similarity_info = similarity_calculator.SimilarityCalculator(project_report_info.project_frequency_dict, project_report_info.report_frequency_dict, project_report_info.is_xml_report, num_files_to_print)
+    similarity_info = similarity_calculator.SimilarityCalculator(project_report_info.project_frequency_dict, project_report_info.report_frequency_dict, project_report_info.xml_report, project_report_info.is_xml_report, num_files_to_print)
 
 if __name__ == "__main__":
     main()

@@ -1,34 +1,38 @@
 import math
 
 import numpy as np
+from prettytable import PrettyTable
 
 class SimilarityCalculator():
-    def __init__(self, project_frequency_dict, report_frequency_dict, is_xml_report, num_files_to_print):
+    def __init__(self, project_frequency_dict, report_frequency_dict, xml_report, is_xml_report, num_files_to_print):
         self.project_frequency_dict = project_frequency_dict
         self.report_frequency_dict = report_frequency_dict
+        self.xml_report = xml_report
         self.is_xml_report = is_xml_report
         self.num_files_to_print = num_files_to_print
         if is_xml_report:
-            self.final_score_for_reports = self.get_final_score_for_reports(project_frequency_dict, report_frequency_dict)
+            self.final_score_for_reports = self.get_final_score_for_reports(project_frequency_dict, xml_report)
             self.ranked_documents_for_reports = self.rank_documents_for_reports(self.final_score_for_reports)
+            self.print_result()
             print(self.ranked_documents_for_reports)
         else:
             self.final_score_for_report = self.get_final_score_for_report(project_frequency_dict, report_frequency_dict)
             self.ranked_documents_for_report = self.rank_documents_for_report(self.final_score_for_report)
+            self.print_result()
             print(self.ranked_documents_for_report)
 
+    ### Calculate final scores ###
+
     def get_final_score_for_report(self, project_frequency_dict, report_frequency_dict, xml_report = None, alpha = 0.25):
-        rvsm_score_dict = dict()
-        simi_score_dict = dict()
-        final_score_dict = dict()
+        rvsm_score_dict, simi_score_dict, final_score_dict = dict(), dict(), dict()
 
         if xml_report:
-            for source_dir, source_frequency_dict in project_frequency_dict.items(): # bug instance : bug_id, report_frequency_dict, source_frequency_dict_dict
+            for source_dir, source_frequency_dict in project_frequency_dict.items(): # bug instance : bug_id, report_frequency_dict, related_sources
                 rvsm_score_dict[source_dir] = self.rvsm_score(report_frequency_dict, source_frequency_dict)
                 simi_score_dict[source_dir] = 0
                 for bug_instance in xml_report: # report_frequency_dict == report_info
-                    if bug_instance.report_frequency_dict != report_frequency_dict and source_dir in bug_instance.source_frequency_dict_dict.keys():
-                        simi_score_dict[source_dir] += self.simi_score(report_frequency_dict, bug_instance.report_frequency_dict) / len(bug_instance.source_frequency_dict_dict)
+                    if bug_instance.report_frequency_dict != report_frequency_dict and source_dir in bug_instance.related_sources:
+                        simi_score_dict[source_dir] += self.simi_score(report_frequency_dict, bug_instance.report_frequency_dict) / len(bug_instance.related_sources)
 
             for soucre_dir, rvsm_score in rvsm_score_dict.items(): # normalize rVSMScore
                 rvsm_score_dict[soucre_dir] = self.normalize(rvsm_score, rvsm_score_dict.values())
@@ -38,7 +42,7 @@ class SimilarityCalculator():
                 final_score_dict[source_dir] = (1 - alpha) * rvsm_score_dict[source_dir] + alpha * simi_score_dict[source_dir]
             return final_score_dict
         else: # In case where there is no previous bug information
-            for source_dir, source_frequency_dict in project_frequency_dict.items(): # bug instance : bug_id, report_frequency_dict, source_frequency_dict_dict
+            for source_dir, source_frequency_dict in project_frequency_dict.items(): # bug instance : bug_id, report_frequency_dict, related_sources
                 rvsm_score_dict[source_dir] = self.rvsm_score(report_frequency_dict, source_frequency_dict)
 
             for soucre_dir, rvsm_score in rvsm_score_dict.items(): # normalize rVSMScore
@@ -48,17 +52,21 @@ class SimilarityCalculator():
                 final_score_dict[source_dir] = rvsm_score_dict[source_dir]
             return final_score_dict
 
-    def get_final_score_for_reports(self, project_frequency_dict, report_frequency_dict):
+    def get_final_score_for_reports(self, project_frequency_dict, xml_report):
         final_score_dict_for_reports = dict()
-        for bug_instance in report_frequency_dict:
-            final_score_dict_for_reports[bug_instance.bug_id] = self.get_final_score_for_report(project_frequency_dict, bug_instance.report_frequency_dict, report_frequency_dict, alpha = 0.25)
+        for bug_instance in xml_report:
+            final_score_dict_for_reports[bug_instance.bug_id] = self.get_final_score_for_report(project_frequency_dict, bug_instance.report_frequency_dict, xml_report, alpha = 0.25)
         return final_score_dict_for_reports
+
+    ### Calculate rVSMScore, SimiScore ###
 
     def rvsm_score(self, query, document):
         return self.document_length(document) * self.cos(query, document) / (self.norm(query) * self.norm(document))
 
     def simi_score(self, report_frequency_dict, similar_report_frequency_dict):
         return self.cos(report_frequency_dict, similar_report_frequency_dict) / (self.norm(report_frequency_dict) * self.norm(similar_report_frequency_dict))
+
+    ### Functions needed to calculate rVSMScore, SimiScore ###
 
     def tfidf(self, term, document):
         return self.tf(term, document) * self.idf(term)
@@ -100,6 +108,8 @@ class SimilarityCalculator():
             return x
         return (x - min(x_list)) / (max(x_list) - min(x_list))
 
+    ### Sort source codes based on their scores ###
+
     def rank_documents_for_report(self, final_score_for_report):
         return sorted(final_score_for_report.items(), key = lambda x : x[1], reverse = True)
 
@@ -108,15 +118,54 @@ class SimilarityCalculator():
         for bug_id, final_score_for_report in final_score_for_reports.items():
             ranked_documents_for_reports[bug_id] = sorted(final_score_for_report.items, keys = lambda x : x[1], reverse = True)
 
-    def make_report(self):
-        if 
-        pass
+    ### Evaluation matrices ###
 
     def top_n_rank(self, n):
-        pass
+        ranked_bug_files = 0
+        for bug_id, ranked_document_for_report in self.ranked_documents_for_reports.items():
+            for bug_instance in self.xml_report:
+                if bug_instance.bug_id == bug_id and set(list(ranked_document_for_report.keys())[:n]) & set(bug_instance.related_sources) != set():
+                    ranked_bug_files += 1
+        print(f"ranked_bug_files : {ranked_bug_files}")
+        return ranked_bug_files / len(self.xml_report)
 
     def mean_reciprocal_rank(self):
-        pass
+        reciprocal_rank = 0
+        for bug_instance in self.xml_report:
+            for i, source_dir in enumerate(self.ranked_documents_for_reports[bug_instance.bug_id]):
+                if source_dir in bug_instance.related_sources:
+                    reciprocal_rank += 1 / (i + 1)
+                    break
+        return reciprocal_rank / len(self.xml_report)
 
     def mean_average_precision(self):
-        pass
+        total_average_precision = 0
+        for bug_instance in self.xml_report:
+            average_precision = 0
+            for i, source_dir in enumerate(self.ranked_documents_for_reports(bug_instance.bug_id)):
+                if source_dir in bug_instance.related_sources:
+                    precision = len(set(list(self.ranked_documents_for_reports(bug_instance.bug_id).keys()[: i + 1])) & set(bug_instance.related_sources)) / (i + 1)
+                    average_precision += precision / len(bug_instance.related_sources)
+            total_averate_precision += average_precision
+        mean_average_precision = total_average_precision / len(self.xml_report)
+
+    # ### Print results ###
+
+    def print_result(self):
+        if self.is_xml_report:
+            table = PrettyTable()
+            table.field_names = [f'Top 1', 'Top 5', 'Top 10', 'MRR', "MAP"]
+            table.add_row([self.top_n_rank(n = 1), self.top_n_rank(n = 5), self.top_n_rank(n = 10), self.mean_reciprocal_rank(), self.mean_average_precision()])
+            print(table)
+        else:
+            table = PrettyTable()
+            table.field_names = ['ranking', 'source file', 'score']
+            table.align["ranking"] = "c"
+            table.align['source file'] = "l"
+            table.align['score'] = "r"
+            for i, source_dir in enumerate(self.ranked_documents_for_report):
+                print(len(table))
+                if len(table) >= self.num_files_to_print:
+                    break
+                table.add_row([i + 1, self.ranked_documents_for_report[source_dir]])
+            print(table)

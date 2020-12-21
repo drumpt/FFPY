@@ -1,0 +1,1290 @@
+<?xml version="1.0"?>
+<bugrepository>
+  <bug transactionid="3b10dff8172473fd6695b4ee3a34f4dc51d3b72d" id="1755161">
+    <bugreport title="Lenient Chronology issue with Spring DST?">
+I\'m not sure if this is a bug, or just undocumented behavior.  
+
+When constructing dates using a lenient calendar, and a time within the
+\'missing\' hour on the day of the change from standard to daylight time is
+entered, the resulting time is 01:30 instead of the \'equivalent\' 03:30.
+
+Example:
+  Constructing a new date of 3/11/2007 02:00:00 CST results in a time of
+3/11/2007 01:00:00 CST.  I would expect 3/11/2007 03:00:00 CDT to be the
+\'equivalent\' time.
+
+May be related to ID#1747219 and 1755158?
+
+Attached program reproduces the issue.
+   </bugreport>
+    <fixedfiles>
+      <file state="new" name="JodaTime/src/test/org/joda/time/MockZone.java" revision="1231">
+             /*
+ *  Copyright 2001-2007 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time;
+
+public class MockZone extends DateTimeZone {
+
+    long transition;
+    int winterOffset;
+
+    public MockZone(long transition, int winterOffset) {
+        super("MockZone");
+        this.transition = transition;
+        this.winterOffset = winterOffset;
+    }
+
+    public int getOffset(long instant) {
+        return (instant &lt; transition ? winterOffset : winterOffset + 3600000);
+    }
+
+    public int getStandardOffset(long instant) {
+        return winterOffset;
+    }
+
+    public long nextTransition(long instant) {
+        return (instant &lt; transition ? transition : transition + 180L * DateTimeConstants.MILLIS_PER_DAY);
+    }
+
+    public long previousTransition(long instant) {
+        return (instant &gt; transition ? transition : transition - 180L * DateTimeConstants.MILLIS_PER_DAY);
+    }
+
+    public boolean isFixed() {
+        return false;
+    }
+
+    public String getNameKey(long instant) {
+        return null;
+    }
+
+    public boolean equals(Object object) {
+        return false;
+    }
+}
+           </file>
+      <file state="changed" name="JodaTime/src/test/org/joda/time/chrono/TestLenientChronology.java" revision="1231">
+             20a21
+&gt; import org.joda.time.Chronology;
+22a24
+&gt; import org.joda.time.MockZone;
+47a50,94
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void test_setYear() {
+&gt;         Chronology zone = LenientChronology.getInstance(ISOChronology.getInstanceUTC());
+&gt;         DateTime dt = new DateTime(2007, 1, 1, 0, 0 ,0, 0, zone);
+&gt;         assertEquals("2007-01-01T00:00:00.000Z", dt.toString());
+&gt;         dt = dt.withYear(2008);
+&gt;         assertEquals("2008-01-01T00:00:00.000Z", dt.toString());
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void test_setMonthOfYear() {
+&gt;         Chronology zone = LenientChronology.getInstance(ISOChronology.getInstanceUTC());
+&gt;         DateTime dt = new DateTime(2007, 1, 1, 0, 0 ,0, 0, zone);
+&gt;         assertEquals("2007-01-01T00:00:00.000Z", dt.toString());
+&gt;         dt = dt.withMonthOfYear(13);
+&gt;         assertEquals("2008-01-01T00:00:00.000Z", dt.toString());
+&gt;         dt = dt.withMonthOfYear(0);
+&gt;         assertEquals("2007-12-01T00:00:00.000Z", dt.toString());
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void test_setDayOfMonth() {
+&gt;         Chronology zone = LenientChronology.getInstance(ISOChronology.getInstanceUTC());
+&gt;         DateTime dt = new DateTime(2007, 1, 1, 0, 0 ,0, 0, zone);
+&gt;         assertEquals("2007-01-01T00:00:00.000Z", dt.toString());
+&gt;         dt = dt.withDayOfMonth(32);
+&gt;         assertEquals("2007-02-01T00:00:00.000Z", dt.toString());
+&gt;         dt = dt.withDayOfMonth(0);
+&gt;         assertEquals("2007-01-31T00:00:00.000Z", dt.toString());
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void test_setHourOfDay() {
+&gt;         Chronology zone = LenientChronology.getInstance(ISOChronology.getInstanceUTC());
+&gt;         DateTime dt = new DateTime(2007, 1, 1, 0, 0 ,0, 0, zone);
+&gt;         assertEquals("2007-01-01T00:00:00.000Z", dt.toString());
+&gt;         dt = dt.withHourOfDay(24);
+&gt;         assertEquals("2007-01-02T00:00:00.000Z", dt.toString());
+&gt;         dt = dt.withHourOfDay(-1);
+&gt;         assertEquals("2007-01-01T23:00:00.000Z", dt.toString());
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     //------------------------ Bug ------------------------------------------
+&gt;     //-----------------------------------------------------------------------
+68a116,169
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     //------------------------ Bug [1755161] --------------------------------
+&gt;     //-----------------------------------------------------------------------
+&gt;     /** Mock zone simulating America/Grand_Turk cutover at midnight 2007-04-01 */
+&gt;     private static long CUTOVER_TURK = 1175403600000L;
+&gt;     private static int OFFSET_TURK = -18000000;  // -05:00
+&gt;     private static final DateTimeZone MOCK_TURK = new MockZone(CUTOVER_TURK, OFFSET_TURK);
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void test_MockTurkIsCorrect() {
+&gt;         DateTime pre = new DateTime(CUTOVER_TURK - 1L, MOCK_TURK);
+&gt;         assertEquals("2007-03-31T23:59:59.999-05:00", pre.toString());
+&gt;         DateTime at = new DateTime(CUTOVER_TURK, MOCK_TURK);
+&gt;         assertEquals("2007-04-01T01:00:00.000-04:00", at.toString());
+&gt;         DateTime post = new DateTime(CUTOVER_TURK + 1L, MOCK_TURK);
+&gt;         assertEquals("2007-04-01T01:00:00.001-04:00", post.toString());
+&gt;     }
+&gt; 
+&gt;     public void test_lenientChrononolgy_Chicago() {
+&gt;         DateTimeZone zone = DateTimeZone.forID("America/Chicago");
+&gt;         Chronology lenient = LenientChronology.getInstance(ISOChronology.getInstance(zone));
+&gt;         DateTime dt = new DateTime(2007, 3, 11, 2, 30, 0, 0, lenient);
+&gt;         assertEquals("2007-03-11T03:30:00.000-05:00", dt.toString());
+&gt;     }
+&gt; 
+&gt;     public void test_lenientChrononolgy_Turk() {
+&gt;         Chronology lenient = LenientChronology.getInstance(ISOChronology.getInstance(MOCK_TURK));
+&gt;         DateTime dt = new DateTime(2007, 4, 1, 0, 30, 0, 0, lenient);
+&gt;         assertEquals("2007-04-01T01:30:00.000-04:00", dt.toString());
+&gt;     }
+&gt; 
+&gt;     public void test_strictChrononolgy_Chicago() {
+&gt;         DateTimeZone zone = DateTimeZone.forID("America/Chicago");
+&gt;         Chronology lenient = StrictChronology.getInstance(ISOChronology.getInstance(zone));
+&gt;         try {
+&gt;             new DateTime(2007, 3, 11, 2, 30, 0, 0, lenient);
+&gt;             fail();
+&gt;         } catch (IllegalArgumentException ex) {
+&gt;             // expected
+&gt;         }
+&gt;     }
+&gt; 
+&gt;     public void test_isoChrononolgy_Chicago() {
+&gt;         DateTimeZone zone = DateTimeZone.forID("America/Chicago");
+&gt;         Chronology lenient = ISOChronology.getInstance(zone);
+&gt;         try {
+&gt;             new DateTime(2007, 3, 11, 2, 30, 0, 0, lenient);
+&gt;             fail();
+&gt;         } catch (IllegalArgumentException ex) {
+&gt;             // expected
+&gt;         }
+&gt;     }
+&gt;
+           </file>
+      <file state="changed" name="JodaTime/src/java/org/joda/time/field/LenientDateTimeField.java" revision="1231">
+             2c2
+&lt;  *  Copyright 2001-2005 Stephen Colebourne
+---
+&gt;  *  Copyright 2001-2007 Stephen Colebourne
+62,64c62,63
+&lt;      * Set values which may be out of bounds. If the value is out of bounds,
+&lt;      * the instant is first set to the minimum allowed value, and then the
+&lt;      * difference is added.
+---
+&gt;      * Set values which may be out of bounds by adding the difference between
+&gt;      * the new value and the current value.
+67,71c66,67
+&lt;         int min = getMinimumValue(instant);
+&lt;         if (value &gt;= min &amp;&amp; value &lt;= getMaximumValue(instant)) {
+&lt;             return super.set(instant, value);
+&lt;         }
+&lt;         return add(super.set(instant, min), value - min);
+---
+&gt;         long difference = FieldUtils.safeSubtract(value, get(instant));
+&gt;         return add(instant, difference);
+           </file>
+      <file state="changed" name="JodaTime/RELEASE-NOTES.txt" revision="1231">
+             58a59,62
+&gt; - LenientChronology and time zones
+&gt;   LenientChronology could throw exceptions when the time being created
+&gt;   didn't exist dies to the time zone [1755161]
+&gt;
+           </file>
+    </fixedfiles>
+    <testsforfix ID="1755161">
+      <file LOCATION="JodaTime/src/test/org/joda/time/chrono/TestLenientChronology.java">
+        <test NAME="test_setYear"/>
+        <test NAME="test_setMonthOfYear"/>
+        <test NAME="test_setDayOfMonth"/>
+        <test NAME="test_setHourOfDay"/>
+        <test NAME="test_MockTurkIsCorrect"/>
+        <test NAME="test_lenientChrononolgy_Chicago"/>
+        <test NAME="test_lenientChrononolgy_Turk"/>
+        <test NAME="test_strictChrononolgy_Chicago"/>
+        <test NAME="test_isoChrononolgy_Chicago"/>
+      </file>
+    </testsforfix>
+  </bug>
+  <bug transactionid="4568771d82b6f6528df6a00a4dfd308d84965e46" id="1788282">
+    <bugreport title="Problems parsing text parts of dates">
+Check out this code (test it with date in September):
+DateTimeFormatter formatter =
+DateTimeFormat.forPattern("dd.MMM.yyyy").withLocale(
+                Locale.FRENCH);
+System.out.println(formatter.print(System.currentTimeMillis()));
+formatter.parseDateTime("11.sept..2007");
+
+you will get exception on the last line.
+The problem is that some of the French short months end with \'.\'
+This works fine with the SimpleDateFormat.
+   </bugreport>
+    <fixedfiles>
+      <file state="changed" name="JodaTime/src/java/org/joda/time/format/DateTimeFormatterBuilder.java" revision="1257">
+             20a21,22
+&gt; import java.util.HashMap;
+&gt; import java.util.HashSet;
+22a25,26
+&gt; import java.util.Map;
+&gt; import java.util.Set;
+28a33
+&gt; import org.joda.time.MutableDateTime;
+29a35
+&gt; import org.joda.time.MutableDateTime.Property;
+1604a1611
+&gt;         private static Map cParseCache = new HashMap();
+1681,1689c1688,1725
+&lt;             int limit = text.length();
+&lt;             int i = position;
+&lt;             for (; i&lt;limit; i++) {
+&lt;                 char c = text.charAt(i);
+&lt;                 if (c &lt; 'A') {
+&lt;                     break;
+&lt;                 }
+&lt;                 if (c &gt;= 'a' &amp;&amp; c &lt;= 'z' || c &gt;= 'A' &amp;&amp; c &lt;= 'Z' || Character.isLetter(c)) {
+&lt;                     continue;
+---
+&gt;             Locale locale = bucket.getLocale();
+&gt;             // handle languages which might have non ASCII A-Z or punctuation
+&gt;             // bug 1788282
+&gt;             Set validValues = null;
+&gt;             int maxLength = 0;
+&gt;             synchronized (cParseCache) {
+&gt;                 Map innerMap = (Map) cParseCache.get(locale);
+&gt;                 if (innerMap == null) {
+&gt;                     innerMap = new HashMap();
+&gt;                     cParseCache.put(locale, innerMap);
+&gt;                 }
+&gt;                 Object[] array = (Object[]) innerMap.get(iFieldType);
+&gt;                 if (array == null) {
+&gt;                     validValues = new HashSet(32);
+&gt;                     MutableDateTime dt = new MutableDateTime(0L, DateTimeZone.UTC);
+&gt;                     Property property = dt.property(iFieldType);
+&gt;                     int min = property.getMinimumValueOverall();
+&gt;                     int max = property.getMaximumValueOverall();
+&gt;                     if (max - min &gt; 32) {  // protect against invalid fields
+&gt;                         return ~position;
+&gt;                     }
+&gt;                     maxLength = property.getMaximumTextLength(locale);
+&gt;                     for (int i = min; i &lt;= max; i++) {
+&gt;                         property.set(i);
+&gt;                         validValues.add(property.getAsShortText(locale));
+&gt;                         validValues.add(property.getAsText(locale));
+&gt;                     }
+&gt;                     if ("en".equals(locale.getLanguage()) &amp;&amp; iFieldType == DateTimeFieldType.era()) {
+&gt;                         // hack to support for parsing "BCE" and "CE" if the language is English
+&gt;                         validValues.add("BCE");
+&gt;                         validValues.add("CE");
+&gt;                         maxLength = 3;
+&gt;                     }
+&gt;                     array = new Object[] {validValues, new Integer(maxLength)};
+&gt;                     innerMap.put(iFieldType, array);
+&gt;                 } else {
+&gt;                     validValues = (Set) array[0];
+&gt;                     maxLength = ((Integer) array[1]).intValue();
+1691d1726
+&lt;                 break;
+1693,1695c1728,1735
+&lt; 
+&lt;             if (i == position) {
+&lt;                 return ~position;
+---
+&gt;             // match the longest string first using our knowledge of the max length
+&gt;             int limit = Math.min(text.length(), position + maxLength);
+&gt;             for (int i = limit; i &gt; position; i--) {
+&gt;                 String match = text.substring(position, i);
+&gt;                 if (validValues.contains(match)) {
+&gt;                     bucket.saveField(iFieldType, match, locale);
+&gt;                     return i;
+&gt;                 }
+1697,1701c1737
+&lt; 
+&lt;             Locale locale = bucket.getLocale();
+&lt;             bucket.saveField(iFieldType, text.substring(position, i), locale);
+&lt; 
+&lt;             return i;
+---
+&gt;             return ~position;
+           </file>
+      <file state="changed" name="JodaTime/src/test/org/joda/time/format/TestDateTimeFormat.java" revision="1257">
+             26a27
+&gt; import org.joda.time.DateTimeFieldType;
+863a865
+&gt;     //-----------------------------------------------------------------------
+889a892,1106
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void testFormatParse_textMonthJanShort_UK() {
+&gt;         DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("dd MMM yyyy")
+&gt;             .withLocale(Locale.UK).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 1, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals(str, "23 Jan 2007");
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, 2007, 1, 23);
+&gt;     }
+&gt; 
+&gt;     public void testParse_textMonthJanLong_UK() {
+&gt;         DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("dd MMM yyyy")
+&gt;             .withLocale(Locale.UK).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         DateTime date = dateFormatter.parseDateTime("23 January 2007");
+&gt;         check(date, 2007, 1, 23);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textMonthJanShort_France() {
+&gt;         DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("dd MMM yyyy")
+&gt;             .withLocale(Locale.FRANCE).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 1, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("23 janv. 2007", str);
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, 2007, 1, 23);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textMonthJanLong_France() {
+&gt;         DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("dd MMM yyyy")
+&gt;             .withLocale(Locale.FRANCE).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         DateTime date = dateFormatter.parseDateTime("23 janvier 2007");
+&gt;         check(date, 2007, 1, 23);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textMonthApr_France() {
+&gt;         DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("dd MMM yyyy")
+&gt;             .withLocale(Locale.FRANCE).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 2, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("23 f\u00E9vr. 2007", str);  // e acute
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, 2007, 2, 23);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textMonthAtEnd_France() {
+&gt;         DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("dd MMM")
+&gt;             .withLocale(Locale.FRANCE).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("23 juin", str);
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, 1970, 6, 23);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textMonthApr_Korean() {
+&gt;         DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("EEEE, d MMMM yyyy HH:mm")
+&gt;             .withLocale(Locale.KOREAN).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 3, 8, 22, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         assertEquals(new DateTime(2007, 3, 8, 22, 0, 0, 0, UTC), date);
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void testFormatParse_textHalfdayAM_UK() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendClockhourOfHalfday(2)
+&gt;             .appendLiteral('-')
+&gt;             .appendHalfdayOfDayText()
+&gt;             .appendLiteral('-')
+&gt;             .appendYear(4, 4)
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.UK).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 18, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$06-PM-2007", str);
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, 2007, 1, 1);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textHalfdayAM_France() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendClockhourOfHalfday(2)
+&gt;             .appendLiteral('-')
+&gt;             .appendHalfdayOfDayText()
+&gt;             .appendLiteral('-')
+&gt;             .appendYear(4, 4)
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.FRANCE).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 18, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$06-PM-2007", str);
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, 2007, 1, 1);
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void testFormatParse_textEraAD_UK() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendEraText()
+&gt;             .appendYear(4, 4)
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.UK).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$AD2007", str);
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, 2007, 1, 1);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textEraAD_France() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendEraText()
+&gt;             .appendYear(4, 4)
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.FRANCE).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$ap. J.-C.2007", str);
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, 2007, 1, 1);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textEraBC_France() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendEraText()
+&gt;             .appendYear(4, 4)
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.FRANCE).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(-1, 6, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$BC-0001", str);
+&gt;         DateTime date = dateFormatter.parseDateTime(str);
+&gt;         check(date, -1, 1, 1);
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void testFormatParse_textYear_UK() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendText(DateTimeFieldType.year())
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.UK).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$2007", str);
+&gt;         try {
+&gt;             dateFormatter.parseDateTime(str);
+&gt;             fail();
+&gt;         } catch (IllegalArgumentException ex) {
+&gt;             // expected
+&gt;         }
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textYear_France() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendText(DateTimeFieldType.year())
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.FRANCE).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$2007", str);
+&gt;         try {
+&gt;             dateFormatter.parseDateTime(str);
+&gt;             fail();
+&gt;         } catch (IllegalArgumentException ex) {
+&gt;             // expected
+&gt;         }
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void testFormatParse_textAdjoiningHelloWorld_UK() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendDayOfMonth(2)
+&gt;             .appendMonthOfYearShortText()
+&gt;             .appendLiteral("HelloWorld")
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.UK).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$23JunHelloWorld", str);
+&gt;         dateFormatter.parseDateTime(str);
+&gt;     }
+&gt; 
+&gt;     public void testFormatParse_textAdjoiningMonthDOW_UK() {
+&gt;         DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder()
+&gt;             .appendLiteral('$')
+&gt;             .appendDayOfMonth(2)
+&gt;             .appendMonthOfYearShortText()
+&gt;             .appendDayOfWeekShortText()
+&gt;             .toFormatter()
+&gt;             .withLocale(Locale.UK).withZone(DateTimeZone.UTC);
+&gt;         
+&gt;         String str = new DateTime(2007, 6, 23, 0, 0, 0, 0, UTC).toString(dateFormatter);
+&gt;         assertEquals("$23JunSat", str);
+&gt;         dateFormatter.parseDateTime(str);
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     private void check(DateTime test, int hour, int min, int sec) {
+&gt;         assertEquals(hour, test.getYear());
+&gt;         assertEquals(min, test.getMonthOfYear());
+&gt;         assertEquals(sec, test.getDayOfMonth());
+&gt;     }
+&gt;
+           </file>
+      <file state="changed" name="JodaTime/RELEASE-NOTES.txt" revision="1257">
+             150a151,160
+&gt; - DateTime parsing of text failed when the text for the locale contained characters
+&gt;   other than letters. [1788282]
+&gt;   For French, the short text for months ends with '.'.
+&gt;   For Korean, the text for months contains a number.
+&gt;   The parser was also too greedy, and would absorb all letters it found, preventing
+&gt;   parsing a format such as '23JunSat' (month followed by day of week, or any other text).
+&gt;   The parser has been rewritten to only match the text that can be produced by the
+&gt;   formatter.
+&gt; 
+&gt;
+           </file>
+    </fixedfiles>
+    <testsforfix ID="1788282">
+      <file LOCATION="JodaTime/src/test/org/joda/time/format/TestDateTimeFormat.java">
+        <test NAME="testFormatParse_textMonthJanShort_UK"/>
+        <test NAME="testParse_textMonthJanLong_UK"/>
+        <test NAME="testFormatParse_textMonthJanShort_France"/>
+        <test NAME="testFormatParse_textMonthJanLong_France"/>
+        <test NAME="testFormatParse_textMonthApr_France"/>
+        <test NAME="testFormatParse_textMonthAtEnd_France"/>
+        <test NAME="testFormatParse_textMonthApr_Korean"/>
+        <test NAME="testFormatParse_textHalfdayAM_UK"/>
+        <test NAME="testFormatParse_textHalfdayAM_France"/>
+        <test NAME="testFormatParse_textEraAD_UK"/>
+        <test NAME="testFormatParse_textEraAD_France"/>
+        <test NAME="testFormatParse_textEraBC_France"/>
+        <test NAME="testFormatParse_textYear_UK"/>
+        <test NAME="testFormatParse_textYear_France"/>
+        <test NAME="testFormatParse_textAdjoiningHelloWorld_UK"/>
+        <test NAME="testFormatParse_textAdjoiningMonthDOW_UK"/>
+      </file>
+    </testsforfix>
+  </bug>
+  <bug transactionid="b4370721a180fe3c428aed40a3345d817ecf3013" id="1877843">
+    <bugreport title="DateTimeFormat.forFields(List) method can\'t handle immutable">
+line 451 of ISODateTimeFormat (v1.4) is:
+
+[method time(DateTimeFormatterBuilder, Collection, bool, bool, bool,
+bool)]
+        boolean hour = fields.remove(DateTimeFieldType.hourOfDay());
+
+
+as this operation is done on the input to the forFields() method, it
+requires the list to be mutable. This is clearly bad design. The list
+should be cloned.
+
+Even Arrays.asList-fed units will fail to work, as Arrays.asList type lists
+do not support add or remove. Thus, the following code fails:
+
+	private static final DateTimeFormatter TIME_FORMAT =
+ISODateTimeFormat.forFields(Arrays.asList(
+			DateTimeFieldType.hourOfDay(), DateTimeFieldType.minuteOfHour(),
+DateTimeFieldType.secondOfMinute()),
+			true, false);
+
+Workaround:
+
+do the cloning yourself by wrapping whatever you feed to forFields in a new
+ArrayList&lt;DateTimeFieldType&gt;(the argument).
+
+you can mail me at reinier@zwitserloot.com for further questions.
+   </bugreport>
+    <fixedfiles>
+      <file state="changed" name="JodaTime/src/test/org/joda/time/format/TestISODateTimeFormat_Fields.java" revision="1337">
+             20a21
+&gt; import java.util.Collections;
+101a103,146
+&gt;     public void testForFields_calBased_YMD_unmodifiable() {
+&gt;         DateTimeFieldType[] fields = new DateTimeFieldType[] {
+&gt;                 DateTimeFieldType.year(),
+&gt;                 DateTimeFieldType.monthOfYear(),
+&gt;                 DateTimeFieldType.dayOfMonth(),
+&gt;         };
+&gt;         int[] values = new int[] {2005, 6, 25};
+&gt;         List types = Collections.unmodifiableList(new ArrayList(Arrays.asList(fields)));
+&gt;         DateTimeFormatter f = ISODateTimeFormat.forFields(types, true, true);
+&gt;         assertEquals("2005-06-25", f.print(new Partial(fields, values)));
+&gt;         assertEquals(3, types.size());
+&gt;         
+&gt;         types = Arrays.asList(fields);
+&gt;         f = ISODateTimeFormat.forFields(types, true, true);
+&gt;         assertEquals("2005-06-25", f.print(new Partial(fields, values)));
+&gt;         assertEquals(3, types.size());
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+&gt;     public void testForFields_calBased_YMD_duplicates() {
+&gt;         DateTimeFieldType[] fields = new DateTimeFieldType[] {
+&gt;                 DateTimeFieldType.year(),
+&gt;                 DateTimeFieldType.monthOfYear(),
+&gt;                 DateTimeFieldType.dayOfMonth(),
+&gt;         };
+&gt;         DateTimeFieldType[] dupFields = new DateTimeFieldType[] {
+&gt;                 DateTimeFieldType.year(),
+&gt;                 DateTimeFieldType.monthOfYear(),
+&gt;                 DateTimeFieldType.dayOfMonth(),
+&gt;                 DateTimeFieldType.monthOfYear(),
+&gt;         };
+&gt;         int[] values = new int[] {2005, 6, 25};
+&gt;         List types = new ArrayList(Arrays.asList(dupFields));
+&gt;         DateTimeFormatter f = ISODateTimeFormat.forFields(types, true, true);
+&gt;         assertEquals("2005-06-25", f.print(new Partial(fields, values)));
+&gt;         assertEquals(0, types.size());
+&gt;         
+&gt;         types = Arrays.asList(dupFields);
+&gt;         f = ISODateTimeFormat.forFields(types, true, true);
+&gt;         assertEquals("2005-06-25", f.print(new Partial(fields, values)));
+&gt;         assertEquals(4, types.size());
+&gt;     }
+&gt; 
+&gt;     //-----------------------------------------------------------------------
+           </file>
+      <file state="changed" name="JodaTime/src/java/org/joda/time/format/ISODateTimeFormat.java" revision="1337">
+             18a19,20
+&gt; import java.util.HashSet;
+&gt; import java.util.Set;
+205a208,216
+&gt;      * &lt;p&gt;
+&gt;      * This method can side effect the input collection of fields.
+&gt;      * If the input collection is modifiable, then each field that was added to
+&gt;      * the formatter will be removed from the collection, including any duplicates.
+&gt;      * If the input collection is unmodifiable then no side effect occurs.
+&gt;      * &lt;p&gt;
+&gt;      * This side effect processing is useful if you need to know whether all
+&gt;      * the fields were converted into the formatter or not. To achieve this,
+&gt;      * pass in a modifiable list, and check that it is empty on exit.
+208c219,220
+&lt;      *  updated by the method call, which removes those fields built in the formatter
+---
+&gt;      *  updated by the method call unless unmodifiable,
+&gt;      *  removing those fields built in the formatter
+223c235,236
+&lt;         int inputSize = fields.size();
+---
+&gt;         Set workingFields = new HashSet(fields);
+&gt;         int inputSize = workingFields.size();
+227,237c240,250
+&lt;         if (fields.contains(DateTimeFieldType.monthOfYear())) {
+&lt;             reducedPrec = dateByMonth(bld, fields, extended, strictISO);
+&lt;         } else if (fields.contains(DateTimeFieldType.dayOfYear())) {
+&lt;             reducedPrec = dateByOrdinal(bld, fields, extended, strictISO);
+&lt;         } else if (fields.contains(DateTimeFieldType.weekOfWeekyear())) {
+&lt;             reducedPrec = dateByWeek(bld, fields, extended, strictISO);
+&lt;         } else if (fields.contains(DateTimeFieldType.dayOfMonth())) {
+&lt;             reducedPrec = dateByMonth(bld, fields, extended, strictISO);
+&lt;         } else if (fields.contains(DateTimeFieldType.dayOfWeek())) {
+&lt;             reducedPrec = dateByWeek(bld, fields, extended, strictISO);
+&lt;         } else if (fields.remove(DateTimeFieldType.year())) {
+---
+&gt;         if (workingFields.contains(DateTimeFieldType.monthOfYear())) {
+&gt;             reducedPrec = dateByMonth(bld, workingFields, extended, strictISO);
+&gt;         } else if (workingFields.contains(DateTimeFieldType.dayOfYear())) {
+&gt;             reducedPrec = dateByOrdinal(bld, workingFields, extended, strictISO);
+&gt;         } else if (workingFields.contains(DateTimeFieldType.weekOfWeekyear())) {
+&gt;             reducedPrec = dateByWeek(bld, workingFields, extended, strictISO);
+&gt;         } else if (workingFields.contains(DateTimeFieldType.dayOfMonth())) {
+&gt;             reducedPrec = dateByMonth(bld, workingFields, extended, strictISO);
+&gt;         } else if (workingFields.contains(DateTimeFieldType.dayOfWeek())) {
+&gt;             reducedPrec = dateByWeek(bld, workingFields, extended, strictISO);
+&gt;         } else if (workingFields.remove(DateTimeFieldType.year())) {
+240c253
+&lt;         } else if (fields.remove(DateTimeFieldType.weekyear())) {
+---
+&gt;         } else if (workingFields.remove(DateTimeFieldType.weekyear())) {
+244c257
+&lt;         boolean datePresent = (fields.size() &lt; inputSize);
+---
+&gt;         boolean datePresent = (workingFields.size() &lt; inputSize);
+247c260
+&lt;         time(bld, fields, extended, strictISO, reducedPrec, datePresent);
+---
+&gt;         time(bld, workingFields, extended, strictISO, reducedPrec, datePresent);
+252a266,273
+&gt;         
+&gt;         // side effect the input collection to indicate the processed fields
+&gt;         // handling unmodifiable collections with no side effect
+&gt;         try {
+&gt;             fields.retainAll(workingFields);
+&gt;         } catch (UnsupportedOperationException ex) {
+&gt;             // ignore, so we can handle unmodifiable collections
+&gt;         }
+           </file>
+      <file state="changed" name="JodaTime/RELEASE-NOTES.txt" revision="1337">
+             44a45,48
+&gt; - DateTimeFormat.forFields(List) method can't handle immutable [1877843]
+&gt;   Fix so that the method does not throw an exception when an unmodifiable
+&gt;   list is passed in
+&gt;
+           </file>
+    </fixedfiles>
+    <testsforfix ID="1877843">
+      <file LOCATION="JodaTime/src/test/org/joda/time/format/TestISODateTimeFormat_Fields.java">
+        <test NAME="testForFields_calBased_YMD_unmodifiable"/>
+        <test NAME="testForFields_calBased_YMD_duplicates"/>
+      </file>
+    </testsforfix>
+  </bug>
+  <bug transactionid="6a8fe2b399c31b450e9175048a451569c0adc3a7" id="2025928">
+    <bugreport title="printZeroRarelyFirst() is not always printing as expected">
+PeriodFormatterBuilder.printZeroRarelyFirst() is not causing a zero to be
+printed for the months, weeks, days, hours, minutes, and seconds fields if
+they are the first field. These all output correctly for the
+printZeroRarelyLast() command.
+
+If I use the following code, nothing will be output, I would expect "0".
+{
+    Period testPeriod = new Period(0, 0, 0, 0, 0, 0, 0, 0);
+    PeriodFormatter formatter = new
+PeriodFormatterBuilder().printZeroRarelyFirst().appendMonths().toFormatter(
+);
+    System.out.println(formatter.print(testPeriod));
+}
+
+If I change the formatter to add years, as below, a zero will be printed
+for the years value, as expected.
+{
+    Period testPeriod = new Period(0, 0, 0, 0, 0, 0, 0, 0);
+    PeriodFormatter formatter = new
+PeriodFormatterBuilder().printZeroRarelyFirst().appendMonths().appendYears(
+).toFormatter();
+    System.out.println(formatter.print(testPeriod));
+}
+
+The same is true for appendWeeks(), appendDays(), appendHours(),
+appendMinutes(), and appendSeconds() commands.  A zero will only be printed
+if appendYears() is also added.  
+
+Looking at the PeriodFormatterBuilder.getFieldValue() code, it looks like
+the for loop for the PRINT_ZERO_RARELY_LAST case is running in the
+incorrect direction, checking all fields after the given field for null,
+rather than checking all fields before the given field.  Years is working
+correctly since it never enters the for loop.
+
+
+Possible correction added to PeriodFormatterBuilder.java
+ long getFieldValue(ReadablePeriod period) {
+   ...
+   if (value == 0){
+     ...
+     switch (iPrintZeroSetting) {
+       ...
+       case PRINT_ZERO_RARELY_FIRST:
+         if (isZero(period) &amp;&amp; iFieldFormatters[iFieldType] == this) {
+	   int i = Math.min(iFieldType, 8);
+           i--;
+           //Switched loop to i-- instead of i++
+           for (; i &gt;= 0 &amp;&amp; i &lt;= MAX_FIELD; i--) { 
+	     if (isSupported(type, i) &amp;&amp; iFieldFormatters[i] != null) {
+	       return Long.MAX_VALUE;
+	     }
+	   }
+	 } else {
+	   return Long.MAX_VALUE;
+	 }
+       break;
+     }
+   }
+ }
+
+
+Test cases added to TestPeriodFormatterBuilder.java
+
+    public void testFormatPrintZeroRarelyFirstMonths() {
+        PeriodFormatter f =
+            new PeriodFormatterBuilder()
+                .printZeroRarelyFirst()
+                .appendMonths().toFormatter();
+        assertEquals("0", f.print(EMPTY_PERIOD));
+    }
+    
+    public void testFormatPrintZeroRarelyFirstWeeks() {
+        PeriodFormatter f =
+            new PeriodFormatterBuilder()
+                .printZeroRarelyFirst()
+                .appendWeeks().toFormatter();
+        assertEquals("0", f.print(EMPTY_PERIOD));
+    }
+    
+    public void testFormatPrintZeroRarelyFirstDays() {
+        PeriodFormatter f =
+            new PeriodFormatterBuilder()
+                .printZeroRarelyFirst()
+                .appendDays().toFormatter();
+        assertEquals("0", f.print(EMPTY_PERIOD));
+    }
+    
+    public void testFormatPrintZeroRarelyFirstHours() {
+        PeriodFormatter f =
+            new PeriodFormatterBuilder()
+                .printZeroRarelyFirst()
+                .appendHours().toFormatter();
+        assertEquals("0", f.print(EMPTY_PERIOD));
+    }
+    
+    public void testFormatPrintZeroRarelyFirstMinutes() {
+        PeriodFormatter f =
+            new PeriodFormatterBuilder()
+                .printZeroRarelyFirst()
+                .appendMinutes().toFormatter();
+        assertEquals("0", f.print(EMPTY_PERIOD));
+    }
+    
+    public void testFormatPrintZeroRarelyFirstSeconds() {
+        PeriodFormatter f =
+            new PeriodFormatterBuilder()
+                .printZeroRarelyFirst()
+                .appendSeconds().toFormatter();
+        assertEquals("0", f.print(EMPTY_PERIOD));
+    }
+   </bugreport>
+    <fixedfiles>
+      <file state="changed" name="JodaTime/src/test/org/joda/time/format/TestPeriodFormatterBuilder.java" revision="1349">
+             648a649,697
+&gt;     public void testFormatPrintZeroRarelyFirstYears() {
+&gt;         PeriodFormatter f = new PeriodFormatterBuilder()
+&gt;             .printZeroRarelyFirst()
+&gt;             .appendYears().toFormatter();
+&gt;         assertEquals("0", f.print(EMPTY_PERIOD));
+&gt;     }
+&gt; 
+&gt;     public void testFormatPrintZeroRarelyFirstMonths() {
+&gt;         PeriodFormatter f = new PeriodFormatterBuilder()
+&gt;             .printZeroRarelyFirst()
+&gt;             .appendMonths().toFormatter();
+&gt;         assertEquals("0", f.print(EMPTY_PERIOD));
+&gt;     }
+&gt; 
+&gt;     public void testFormatPrintZeroRarelyFirstWeeks() {
+&gt;         PeriodFormatter f = new PeriodFormatterBuilder()
+&gt;             .printZeroRarelyFirst()
+&gt;             .appendWeeks().toFormatter();
+&gt;         assertEquals("0", f.print(EMPTY_PERIOD));
+&gt;     }
+&gt; 
+&gt;     public void testFormatPrintZeroRarelyFirstDays() {
+&gt;         PeriodFormatter f = new PeriodFormatterBuilder()
+&gt;             .printZeroRarelyFirst()
+&gt;             .appendDays().toFormatter();
+&gt;         assertEquals("0", f.print(EMPTY_PERIOD));
+&gt;     }
+&gt; 
+&gt;     public void testFormatPrintZeroRarelyFirstHours() {
+&gt;         PeriodFormatter f = new PeriodFormatterBuilder()
+&gt;             .printZeroRarelyFirst()
+&gt;             .appendHours().toFormatter();
+&gt;         assertEquals("0", f.print(EMPTY_PERIOD));
+&gt;     }
+&gt; 
+&gt;     public void testFormatPrintZeroRarelyFirstMinutes() {
+&gt;         PeriodFormatter f = new PeriodFormatterBuilder()
+&gt;             .printZeroRarelyFirst()
+&gt;             .appendMinutes().toFormatter();
+&gt;         assertEquals("0", f.print(EMPTY_PERIOD));
+&gt;     }
+&gt; 
+&gt;     public void testFormatPrintZeroRarelyFirstSeconds() {
+&gt;         PeriodFormatter f = new PeriodFormatterBuilder()
+&gt;             .printZeroRarelyFirst()
+&gt;             .appendSeconds().toFormatter();
+&gt;         assertEquals("0", f.print(EMPTY_PERIOD));
+&gt;     }
+&gt;
+           </file>
+      <file state="changed" name="JodaTime/src/java/org/joda/time/format/PeriodFormatterBuilder.java" revision="1349">
+             1446c1446
+&lt;                         for (; i &gt;= 0 &amp;&amp; i &lt;= MAX_FIELD; i++) {
+---
+&gt;                         for (; i &gt;= 0 &amp;&amp; i &lt;= MAX_FIELD; i--) {
+           </file>
+      <file state="changed" name="JodaTime/RELEASE-NOTES.txt" revision="1349">
+             78a79,82
+&gt; - Period formatting [2025928]
+&gt;   Formatting option printZeroRarelyFirst() did not work unless years
+&gt;   field was included.
+&gt;
+           </file>
+    </fixedfiles>
+    <testsforfix ID="2025928">
+      <file LOCATION="JodaTime/src/test/org/joda/time/format/TestPeriodFormatterBuilder.java">
+        <test NAME="testFormatPrintZeroRarelyFirstYears"/>
+        <test NAME="testFormatPrintZeroRarelyFirstMonths"/>
+        <test NAME="testFormatPrintZeroRarelyFirstWeeks"/>
+        <test NAME="testFormatPrintZeroRarelyFirstDays"/>
+        <test NAME="testFormatPrintZeroRarelyFirstHours"/>
+        <test NAME="testFormatPrintZeroRarelyFirstMinutes"/>
+        <test NAME="testFormatPrintZeroRarelyFirstSeconds"/>
+      </file>
+    </testsforfix>
+  </bug>
+  <bug transactionid="444f721247b5cf74f7a6a71c50eb8fae052beb49" id="2111763">
+    <bugreport title="Null interval in database transform with defaultInterval">
+Null interval in database (i.e start and end column are null).
+The class PersistentIntervall returns a not null Intervall.
+   </bugreport>
+    <fixedfiles>
+      <file state="new" name="JodaTimeContrib/hibernate/src/test/org/joda/time/contrib/hibernate/TestPersistentIntervalNull.java" revision="1353">
+             /*
+ *  Copyright 2001-2008 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time.contrib.hibernate;
+
+import java.io.File;
+import java.sql.SQLException;
+
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.cfg.Configuration;
+import org.joda.time.Interval;
+
+public class TestPersistentIntervalNull extends HibernateTestCase
+{
+    private SessionFactory factory;
+    private Session session;
+    private Transaction transaction;
+    
+    protected void setUp() throws SQLException
+    {
+        factory = getSessionFactory();
+        store();
+    }
+    
+    private void store() throws SQLException
+    {
+        openAndBegin();
+        
+        Plan plan = new Plan(1);
+        plan.setPeriod(null);
+        
+        session.save(plan);
+        session.flush();
+        
+        commitAndClose();
+    }
+
+    private void openAndBegin()
+    {
+        session = factory.openSession();
+        transaction = session.beginTransaction();
+    }
+    
+    private void commitAndClose()
+    {
+        transaction.commit();
+        session.close();
+    }
+    
+    public void testQueryById() throws SQLException
+    {
+        openAndBegin();
+        Interval persistedPeriod = queryPlan().getPeriod();
+        commitAndClose();
+        assertPlanPeriod(persistedPeriod);
+    }
+
+    private void assertPlanPeriod(Interval period)
+    {
+        assertNull(period);
+    }
+
+    private Plan queryPlan()
+    {
+        return (Plan) session.get(Plan.class, new Integer(1));
+    }
+    
+    protected void setupConfiguration(Configuration cfg)
+    {
+        cfg.addFile(new File("src/test/org/joda/time/contrib/hibernate/plan.hbm.xml"));
+    }
+    
+    protected void tearDown() throws Exception
+    {
+        remove();
+        super.tearDown();
+    }
+
+    private void remove()
+    {
+        openAndBegin();
+        session.delete(queryPlan());
+        commitAndClose();
+    }
+}
+           </file>
+      <file state="changed" name="JodaTimeContrib/hibernate/xdocs/changes.xml" revision="1353">
+             10a11,16
+&gt;     &lt;release version="1.1" date="2008-10-11" description="Bug fix version"&gt;
+&gt;       &lt;action dev="scolebourne" type="fix"&gt;
+&gt;         Handle null intervals stored in database [2111763].
+&gt;       &lt;/action&gt;              
+&gt;     &lt;/release&gt;
+&gt; 
+16c22
+&lt;         Add persistence for LocalDate, LocalTime and LocalDateTime.
+---
+&gt;         Add persistence for LocalDate and LocalTime.
+20d25
+&lt;     &lt;!-- types are add, fix, remove, update --&gt;
+           </file>
+      <file state="changed" name="JodaTimeContrib/hibernate/src/java/org/joda/time/contrib/hibernate/PersistentInterval.java" revision="1353">
+             122a123,125
+&gt;         if (start == null || end == null) {
+&gt;             return null;
+&gt;         }
+           </file>
+    </fixedfiles>
+    <testsforfix ID="2111763">
+                  
+          </testsforfix>
+  </bug>
+  <bug transactionid="1aa95ec7646ef444ac502c1e99dd2528aecbfe70" id="2487417">
+    <bugreport title="LocalDate.toInterval() exception ">
+I am using LocalDate.toInterval() to compute \'all day\' intervals as
+specified: "Converts this object to an Interval representing the whole
+day." 
+ 
+This works perfectly with one exception: on daylight cut days in a
+Brazilian timezone: 
+ 
+import org.joda.time.DateTimeZone; 
+import org.joda.time.Interval; 
+import org.joda.time.LocalDate; 
+ 
+import junit.framework.TestCase; 
+ 
+public class JodaTest extends TestCase { 
+public void testBrazil() { 
+DateTimeZone dtz = DateTimeZone.forID("America/Sao_Paulo"); 
+LocalDate date = new LocalDate(2009, 10, 18); 
+Interval interval = date.toInterval(dtz); 
+} 
+} 
+ 
+... were an exception is thrown: 
+java.lang.IllegalArgumentException: Illegal instant due to time zone offset
+transition: 2009-10-18T03:00:00.000 
+at
+org.joda.time.chrono.ZonedChronology.localToUTC(ZonedChronology.java:143) 
+at
+org.joda.time.chrono.ZonedChronology.getDateTimeMillis(ZonedChronology.java
+:119) 
+at
+org.joda.time.chrono.AssembledChronology.getDateTimeMillis(AssembledChronol
+ogy.java:133) 
+at org.joda.time.base.BaseDateTime.&lt;init&gt;(BaseDateTime.java:254) 
+at org.joda.time.DateMidnight.&lt;init&gt;(DateMidnight.java:268) 
+at org.joda.time.LocalDate.toDateMidnight(LocalDate.java:740) 
+at org.joda.time.LocalDate.toInterval(LocalDate.java:847) 
+... 
+
+LocalDate.toInterval() specification is "Converts this object to an
+Interval representing the whole day". While "00:00:00" does not exist, the
+all-day interval does exist I think.
+   </bugreport>
+    <fixedfiles>
+      <file state="changed" name="JodaTime/src/test/org/joda/time/TestLocalDate_Basics.java" revision="1380">
+             905c905
+&lt;         DateTime start = base.toDateTimeAtMidnight();
+---
+&gt;         DateTime start = base.toDateTimeAtStartOfDay();
+916c916
+&lt;         DateTime start = base.toDateTimeAtMidnight(TOKYO);
+---
+&gt;         DateTime start = base.toDateTimeAtStartOfDay(TOKYO);
+921a922,932
+&gt;     public void testToInterval_Zone_noMidnight() {
+&gt;         LocalDate base = new LocalDate(2006, 4, 1, ISO_LONDON);  // LONDON irrelevant
+&gt;         DateTimeZone gaza = DateTimeZone.forID("Asia/Gaza");
+&gt;         Interval test = base.toInterval(gaza);
+&gt;         check(base, 2006, 4, 1);
+&gt;         DateTime start = new DateTime(2006, 4, 1, 1, 0, 0, 0, gaza);
+&gt;         DateTime end = new DateTime(2006, 4, 2, 0, 0, 0, 0, gaza);
+&gt;         Interval expected = new Interval(start, end);
+&gt;         assertEquals(expected, test);
+&gt;     }
+&gt; 
+926c937
+&lt;         DateTime start = base.toDateTimeAtMidnight(LONDON);
+---
+&gt;         DateTime start = base.toDateTimeAtStartOfDay(LONDON);
+           </file>
+      <file state="changed" name="JodaTime/src/java/org/joda/time/LocalDate.java" revision="1380">
+             828a829,831
+&gt;      * The interval may have more or less than 24 hours if this is a daylight
+&gt;      * savings cutover date.
+&gt;      * &lt;p&gt;
+839a843,845
+&gt;      * The interval may have more or less than 24 hours if this is a daylight
+&gt;      * savings cutover date.
+&gt;      * &lt;p&gt;
+847c853,855
+&lt;         return toDateMidnight(zone).toInterval();
+---
+&gt;         DateTime start = toDateTimeAtStartOfDay(zone);
+&gt;         DateTime end = plusDays(1).toDateTimeAtStartOfDay(zone);
+&gt;         return new Interval(start, end);
+           </file>
+      <file state="changed" name="JodaTime/RELEASE-NOTES.txt" revision="1380">
+             46a47,49
+&gt; - LocalDate.toInterval() [2487417]
+&gt;   Now handles time zones which have no midnight at DST cutover
+&gt;
+           </file>
+    </fixedfiles>
+    <testsforfix ID="2487417">
+      <file LOCATION="JodaTime/src/test/org/joda/time/TestLocalDate_Basics.java">
+        <test NAME="testToInterval_Zone_noMidnight"/>
+      </file>
+    </testsforfix>
+  </bug>
+  <bug transactionid="a6bda7719ad30aa54b22ba5dabe99890ca6bd88c" id="2783325">
+    <bugreport title="Typo in DateTimeFormatter">
+DateTimeFormatter has a method called getChronolgy instead of getChronology
+   </bugreport>
+    <fixedfiles>
+      <file state="changed" name="JodaTime/src/test/org/joda/time/format/TestDateTimeFormatter.java" revision="1389">
+             260c260
+&lt;         assertEquals(BUDDHIST_PARIS, f2.getChronolgy());
+---
+&gt;         assertEquals(BUDDHIST_PARIS, f2.getChronology());
+264c264
+&lt;         assertEquals(null, f2.getChronolgy());
+---
+&gt;         assertEquals(null, f2.getChronology());
+           </file>
+      <file state="changed" name="JodaTime/src/java/org/joda/time/format/DateTimeFormatter.java" revision="1389">
+             259a260,269
+&gt;     public Chronology getChronology() {
+&gt;         return iChrono;
+&gt;     }
+&gt; 
+&gt;     /**
+&gt;      * Gets the chronology to use as an override.
+&gt;      * 
+&gt;      * @return the chronology to use as an override
+&gt;      * @deprecated Use the method with the correct spelling
+&gt;      */
+           </file>
+      <file state="changed" name="JodaTime/RELEASE-NOTES.txt" revision="1389">
+             47a48,49
+&gt; - DateTimeFormatter.getChronolgy() [2783325]
+&gt;   Incorrect spelling - new method DateTimeFormatter.getChronology()
+           </file>
+    </fixedfiles>
+    <testsforfix ID="2783325">
+                  
+          </testsforfix>
+  </bug>
+  <bug transactionid="91a5ec766faf9a8f7d2c8a7aacfa566c9db8584c" id="2903029">
+    <bugreport title="toDateTimeAtStartOfDay() and roundFloorCopy() is wrong">
+There are many time zones where
+LocalDate.toDateTimeAtStartOfDay(DateTimeZone) and
+DateTime.dayOfMonth().roundFloorCopy() do not return the correct date time
+at specifc dates. This seems to be caused by DST or time zone changes.
+
+Check following two examples. It is expected that the day of month does not
+change.
+
+1)
+
+    Calculate the start of day 2008-03-16 in time zone
+America/Argentina/Catamarca
+
+    Result:   2008-03-15T23:00:00.000-03:00 (1205632800000)
+    Expected: 2008-03-16T00:00:00.000-03:00 (1205636400000) 
+
+2)
+
+    Calculate the start of day 2008-06-24 in time zone America/Rio_Branco.
+
+    Result:   2008-06-23T23:00:00.000-05:00 (1214280000000)
+    Expected: 2008-06-24T01:00:00.000-04:00 (1214283600000)
+
+See attached test cases for more details on DST and time zone changes. Both
+test cases fail for joda-1.6
+   </bugreport>
+    <fixedfiles>
+      <file state="changed" name="JodaTime/src/java/org/joda/time/DateTimeZone.java" revision="1477">
+             927a928,930
+&gt;                 if (nextLocal == (instantLocal - offsetLocal)) {
+&gt;                     nextLocal = Long.MAX_VALUE;
+&gt;                 }
+928a932,934
+&gt;                 if (nextAdjusted == (instantLocal - offset)) {
+&gt;                     nextAdjusted = Long.MAX_VALUE;
+&gt;                 }
+           </file>
+      <file state="changed" name="JodaTime/src/test/org/joda/time/TestDateTimeZoneCutover.java" revision="1477">
+             20a21,22
+&gt; import org.joda.time.tz.DateTimeZoneBuilder;
+&gt; 
+1029a1032,1049
+&gt;     public void test_DateTime_JustAfterLastEverOverlap() {
+&gt;         // based on America/Argentina/Catamarca in file 2009s
+&gt;         DateTimeZone zone = new DateTimeZoneBuilder()
+&gt;             .setStandardOffset(-3 * DateTimeConstants.MILLIS_PER_HOUR)
+&gt;             .addRecurringSavings("SUMMER", 1 * DateTimeConstants.MILLIS_PER_HOUR, 2000, 2008,
+&gt;                                     'w', 4, 10, 0, true, 23 * DateTimeConstants.MILLIS_PER_HOUR)
+&gt;             .addRecurringSavings("WINTER", 0, 2000, 2008,
+&gt;                                     'w', 8, 10, 0, true, 0 * DateTimeConstants.MILLIS_PER_HOUR)
+&gt;             .toDateTimeZone("Zone", false);
+&gt;         
+&gt;         LocalDate date = new LocalDate(2008, 8, 10);
+&gt;         assertEquals("2008-08-10", date.toString());
+&gt;         
+&gt;         DateTime dt = date.toDateTimeAtStartOfDay(zone);
+&gt;         System.out.println(dt);
+&gt;         assertEquals("2008-08-10T00:00:00.000-03:00", dt.toString());
+&gt;     }
+&gt;
+           </file>
+      <file state="changed" name="JodaTime/RELEASE-NOTES.txt" revision="1477">
+             121a122,124
+&gt; - DateTimeZone.convertLocalToUTC [2903029]
+&gt;   Now handles date after last ever DST change
+&gt;
+           </file>
+    </fixedfiles>
+    <testsforfix ID="2903029">
+      <file LOCATION="JodaTime/src/test/org/joda/time/TestDateTimeZoneCutover.java">
+        <test NAME="test_DateTime_JustAfterLastEverOverlap"/>
+      </file>
+    </testsforfix>
+  </bug>
+</bugrepository>
