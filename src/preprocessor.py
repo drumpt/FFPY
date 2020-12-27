@@ -7,7 +7,7 @@ from xml.etree.ElementTree import parse
 
 import constants as c
 
-class Bug(): # Define each bug information in xml report as class instance
+class Bug: # Define each bug information in xml report as class instance
     def __init__(self, bug_id = None, report_frequency_dict = dict(), related_sources = []):
         self.bug_id = bug_id # distinct bug id
         self.report_frequency_dict = report_frequency_dict # {word : word_count}
@@ -29,23 +29,22 @@ class Bug(): # Define each bug information in xml report as class instance
     def add_related_source(self, source_dir):
         self.related_sources.append(source_dir)
 
-class Preprocessor():
+class Preprocessor:
     def __init__(self, project_dir, report_dir): # consider two cases: 1) report is xml file 2) report is not xml file
         self.project_dir = project_dir
         self.report_dir = report_dir
-        self.is_xml_report = report_dir.split(".")[-1].lower() == "xml"
         self.project_frequency_dict = dict()
-        for source_dir in self.get_sources_from_project_dir(project_dir):
+        for source_dir in self.get_sources_from_project_dir(project_dir, report_dir):
             if self.source_to_frequency_dict(source_dir) != dict():
                 self.project_frequency_dict[source_dir] = self.source_to_frequency_dict(source_dir)
-        if self.is_xml_report:
+        if report_dir.split(".")[-1].lower() == "xml": # xml_report
             self.xml_report = self.parse_xml_report(report_dir)
             self.report_frequency_dict = None
         else:
             self.xml_report = None
-            self.report_frequency_dict = {report_dir : self.report_to_frequency_dict(report_dir)}
+            self.report_frequency_dict = self.report_to_frequency_dict(report_dir)
 
-    def get_sources_from_project_dir(self, project_dir):
+    def get_sources_from_project_dir(self, project_dir, report_dir):
         sources = []
         for root, _, files in os.walk(project_dir):
             for file in files:
@@ -53,6 +52,10 @@ class Preprocessor():
                     sources.append(os.path.join(root, file))
                 except Exception as e:
                     pass
+        try:
+            sources.remove(report_dir)
+        except ValueError:
+            pass
         return sources
 
     def get_real_file_dir(self, project_dir, file_dir):
