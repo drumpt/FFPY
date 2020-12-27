@@ -1,3 +1,0 @@
-[submodule "submodule/firefox-ios"]
-	path = submodule/firefox-ios
-	url = https://github.com/mozilla-mobile/firefox-ios.git
