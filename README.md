@@ -15,7 +15,7 @@ For now, it just supports these four cases:
 | --- | --- |
 | ../data/ZXing | ../data/ZXing/ZXingBugRepository.xml |
 | ../data/Rhino | ../data/Rhino/RhinoBugRepository.xml |
-| ../data/JodaTime/ | ../data/JodaTime/JodaTimeBugRepository.xml |
+| ../data/JodaTime | ../data/JodaTime/JodaTimeBugRepository.xml |
 | ../data/SWT/swt-3.1/src | ../data/SWT/SWTBugRepository.xml |
 
 ## Experimental Results
