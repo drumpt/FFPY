@@ -25,6 +25,6 @@ For now, it just supports these four cases:
 | JodaTime | 0.375 | 0.875 | 0.875 | 0.604 | 0.604 |
 | SWT | 0.112 | 0.449 | 0.561 | 0.311 | 0.223 |
 
-## Reference
+## References
 - Jian Zhou, Hongyu Zhang. [Where Should the Bugs Be Fixed?](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6227210) IEEE Internation Conference on Software Engineering, 2012.  
 - Shin Yoo. 9. [Fault Localisation](https://coinse.kaist.ac.kr/assets/files/teaching/2020/cs453/cs453slide09.pdf)
