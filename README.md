@@ -24,6 +24,7 @@ For now, it just supports these four cases:
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | JodaTime | 0.375 | 0.875 | 0.875 | 0.604 | 0.604 |
 | SWT | 0.112 | 0.449 | 0.561 | 0.311 | 0.223 |
+| ZXing | 0.000 | 0.150 | 0.250 | 0.096 | 0.077 |
 
 ## References
 - Jian Zhou, Hongyu Zhang. [Where Should the Bugs Be Fixed?](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6227210) IEEE Internation Conference on Software Engineering, 2012.  
