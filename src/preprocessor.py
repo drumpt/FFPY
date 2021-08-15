@@ -88,8 +88,8 @@ class Preprocessor:
                         if os.path.exists(source_dir):
                             bug_instance.add_related_source(source_dir)
                 except Exception as e:
-                    print(e)
-                    # pass
+                    # print(e)
+                    pass
                 try:
                     for file in bug.find("fixedFiles").findall("file"):
                         if len(os.path.splitext(file.attrib["name"])) == 2: # in case where there are dotted directories
@@ -98,11 +98,11 @@ class Preprocessor:
                         if os.path.exists(source_dir):
                             bug_instance.add_related_source(source_dir)
                 except Exception as e:
-                    print(e)
-                    # pass
+                    # print(e)
+                    pass
             except Exception as e:
-                print(e)
-                # pass
+                # print(e)
+                pass
             try: # second xml case
                 bug_instance.set_report_frequency_dict(self.report_to_frequency_dict(bug.find("buginformation").find("description").text, is_string = True))
                 try:
@@ -113,13 +113,13 @@ class Preprocessor:
                         if os.path.exists(source_dir):
                             bug_instance.add_related_source(source_dir)
                 except Exception as e:
-                    print(e)
-                    # pass
+                    # print(e)
+                    pass
             except Exception as e:
-                print(e)
+                # print(e)
                 pass
             report_info.append(bug_instance)
-            print(bug_instance)
+            # print(bug_instance)
         return report_info
 
     ### Natural language processing for source code files and bug reports ###

@@ -10,7 +10,7 @@ class SimilarityCalculator:
         self.xml_report = xml_report
         self.num_files_to_print = num_files_to_print
         if self.xml_report:
-            self.final_score_for_reports = self.get_final_score_for_reports(project_frequency_dict, report_frequency_dict, xml_report)
+            self.final_score_for_reports = self.get_final_score_for_reports(project_frequency_dict, xml_report)
             self.ranked_documents_for_reports = self.rank_documents_for_reports(self.final_score_for_reports)
         else:
             self.final_score_for_report = self.get_final_score_for_report(project_frequency_dict, report_frequency_dict, xml_report)
@@ -57,7 +57,6 @@ class SimilarityCalculator:
     ### Calculate rVSMScore, SimiScore ###
 
     def rvsm_score(self, query, document):
-        print(query, document)
         if self.norm(query) * self.norm(document) == 0:
             return 0
         return self.document_length(document) * self.cos(query, document) / (self.norm(query) * self.norm(document))
@@ -105,7 +104,6 @@ class SimilarityCalculator:
 
     def normalize(self, x, x_list):
         if max(x_list) == min(x_list):
-            # print("Abnormal case")
             return x
         return (x - min(x_list)) / (max(x_list) - min(x_list))
 
